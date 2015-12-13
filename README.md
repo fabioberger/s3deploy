@@ -3,7 +3,7 @@ S3 Deploy
 
 Do you have a static web-app you'd like to deploy to S3 with one command? S3Deploy is the tool for you!
 
-How to install:
+# How to install:
 
 1. Download this repo:<br>
 ```
