@@ -34,7 +34,6 @@ replacing YOUR_S3_ACCESS_KEY and YOUR_S3_SECRET_KEY with your keys from [https:/
 ```
 cd ~/path/to/my/project
 ```
-<br>
 ```
 s3deploy S3_BUCKET_NAME
 ```
