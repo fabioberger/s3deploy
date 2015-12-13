@@ -45,3 +45,5 @@ Where you replace S3_BUCKET_NAME with the bucket you'd like to deploy the projec
 export $PATH=$PATH:$GOPATH/bin
 ```<br>
 If you're not sure if you do!
+
+Dedicated to: Marlene, I hope this tool helps you learn to code faster ;)
