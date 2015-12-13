@@ -33,7 +33,8 @@ replacing YOUR_S3_ACCESS_KEY and YOUR_S3_SECRET_KEY with your keys from [https:/
 5. Enter any project directory you would like to deploy and run:
 ```
 cd ~/path/to/my/project
-```<br>
+```
+<br>
 ```
 s3deploy S3_BUCKET_NAME
 ```
@@ -43,7 +44,7 @@ Where you replace S3_BUCKET_NAME with the bucket you'd like to deploy the projec
 **Note**: Make sure you're GOPATH bin is in your $PATH variable. Try:
 ```
 export $PATH=$PATH:$GOPATH/bin
-```<br>
+```
 If you're not sure if you do!
-
+<br><br>
 Dedicated to: Marlene, I hope this tool helps you learn to code faster ;)
