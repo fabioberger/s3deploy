@@ -1,3 +1,6 @@
+<a href="https://godoc.org/github.com/fabioberger/s3deploy" ><img src="http://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square" /></a>
+
+
 S3 Deploy
 --------------
 
