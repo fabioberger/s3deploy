@@ -30,15 +30,21 @@ export S3_SECRET_KEY=YOUR_S3_SECRET_KEY
 <br>
 replacing YOUR_S3_ACCESS_KEY and YOUR_S3_SECRET_KEY with your keys from [https://console.aws.amazon.com/iam/home?#security_credential](https://console.aws.amazon.com/iam/home?#security_credential)
 
-5. Enter any project directory you would like to deploy and run:
+5. Enter any project directory you would like to deploy and run s3deploy:
 ```
 cd ~/path/to/my/project
 ```
 ```
-s3deploy S3_BUCKET_NAME
+s3deploy -b S3_BUCKET_NAME
 ```
 <br>
-Where you replace S3_BUCKET_NAME with the bucket you'd like to deploy the project to. Make sure this bucket is already created on S3
+Where you replace S3_BUCKET_NAME with the bucket you'd like to deploy the project to. Make sure this bucket is already created on S3.
+
+For more options, check out:
+
+```
+s3deploy --help
+```
 
 **Note**: Make sure you're GOPATH bin is in your $PATH variable. Try:
 ```

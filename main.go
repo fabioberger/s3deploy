@@ -3,90 +3,127 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/fabioberger/s3/s3util"
+	"github.com/fabioberger/s3deploy/store"
+	"github.com/go-errors/errors"
+	"github.com/urfave/cli"
 )
 
 func main() {
 	s3util.DefaultConfig.AccessKey = os.Getenv("S3_ACCESS_KEY")
 	s3util.DefaultConfig.SecretKey = os.Getenv("S3_SECRET_KEY")
 
-	currentDirectory, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatal(err)
+	app := cli.NewApp()
+	app.Name = "s3deploy"
+	app.Usage = "Sync files to S3"
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "bucket, b",
+			Value: "",
+			Usage: "the name of the bucket you want your files uploaded to",
+		},
+		cli.StringFlag{
+			Name:  "region, r",
+			Value: "s3",
+			Usage: "the S3 region your bucket is located in. e.g \"s3-eu-west-1\"",
+		},
 	}
-
-	args := os.Args[1:]
-	bucketName := "countdown-christmas" // default bucket name
-	if len(args) > 0 {
-		bucketName = args[0]
-	}
-
-	amazonBucketUrl := "https://" + bucketName + ".s3.amazonaws.com"
-	err = filepath.Walk(currentDirectory, func(fullPath string, f os.FileInfo, err error) error {
-
-		relativePath := fullPath[len(currentDirectory):]
-		if !strings.Contains(relativePath, ".") {
-			return nil
+	app.Action = func(c *cli.Context) error {
+		bucketName := c.String("bucket")
+		regionName := c.String("region")
+		if bucketName == "" {
+			return cli.NewExitError("missing required -bucket argument", 2)
 		}
-		finalS3Url := amazonBucketUrl + relativePath
-		copy(finalS3Url, fullPath)
-		return nil
-	})
 
-	fmt.Println("Deployed Successfully!")
+		if err := deployFiles(bucketName, regionName); err != nil {
+			fmt.Println(err.(*errors.Error).ErrorStack())
+			return cli.NewExitError(err.Error(), 2)
+		}
+		return nil
+	}
+
+	app.Run(os.Args)
 }
 
-func copy(finalS3Url string, fullPath string) {
-
-	r, err := open(fullPath)
+func deployFiles(bucketName, regionName string) error {
+	store, err := store.New()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return err
+	}
+	defer store.SaveCacheToFile()
+
+	currentDirectory, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		return errors.Wrap(err, 0)
+	}
+	amazonBucketURL := fmt.Sprintf("https://%s.amazonaws.com/%s", regionName, bucketName)
+	if err = filepath.Walk(currentDirectory, func(fullPath string, f os.FileInfo, err error) error {
+		relativePath := fullPath[len(currentDirectory):]
+		if !strings.Contains(relativePath, ".") {
+			return nil // skip
+		}
+
+		if !f.IsDir() {
+			didFileChange, err := store.DidFileChange(fullPath)
+			if err != nil {
+				return err
+			}
+			if didFileChange {
+				finalS3Url := amazonBucketURL + relativePath
+				if err = uploadFileToS3(finalS3Url, fullPath); err != nil {
+					return err
+				}
+			}
+			store.UpdateCache(fullPath)
+		}
+		store.MarkAsTouched(fullPath)
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, 0)
 	}
 
-	w, err := create(finalS3Url)
+	// TODO: remove deleted files from S3
+
+	fmt.Println("Deployed Successfully!")
+	return nil
+}
+
+func uploadFileToS3(s3FilePath, localFilePath string) error {
+	r, err := os.Open(localFilePath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return errors.Wrap(err, 0)
+	}
+
+	w, err := createS3Uploader(s3FilePath)
+	if err != nil {
+		return err
 	}
 
 	_, err = io.Copy(w, r)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return errors.Wrap(err, 0)
 	}
 
 	err = w.Close()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return errors.Wrap(err, 0)
 	}
 
-	fmt.Println("Copied", fullPath)
+	fmt.Println("Copied", localFilePath)
+	return nil
 }
 
-func open(s string) (io.ReadCloser, error) {
-	if isURL(s) {
-		return s3util.Open(s, nil)
+func createS3Uploader(s string) (w io.WriteCloser, err error) {
+	header := make(http.Header)
+	header.Add("x-amz-acl", "public-read")
+	w, err = s3util.Create(s, header, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, 0)
 	}
-	return os.Open(s)
-}
-
-func create(s string) (io.WriteCloser, error) {
-	if isURL(s) {
-		header := make(http.Header)
-		header.Add("x-amz-acl", "public-read")
-		return s3util.Create(s, header, nil)
-	}
-	return os.Create(s)
-}
-
-func isURL(s string) bool {
-	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
+	return w, nil
 }
