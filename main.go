@@ -38,15 +38,20 @@ func main() {
 			Value: "s3",
 			Usage: "the S3 region your bucket is located in. e.g \"s3-eu-west-1\"",
 		},
+		cli.BoolFlag{
+			Name:  "all, a",
+			Usage: "will force all files to be uploaded, even if they haven't changed since last upload",
+		},
 	}
 	app.Action = func(c *cli.Context) error {
 		bucketName := c.String("bucket")
 		regionName := c.String("region")
+		isForceUploadEnabled := c.Bool("all")
 		if bucketName == "" {
 			return cli.NewExitError("missing required -bucket argument", 2)
 		}
 
-		if err := deployFiles(bucketName, regionName); err != nil {
+		if err := deployFiles(bucketName, regionName, isForceUploadEnabled); err != nil {
 			fmt.Println(err.(*errors.Error).ErrorStack())
 			return cli.NewExitError(err.Error(), 2)
 		}
@@ -56,7 +61,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func deployFiles(bucketName, regionName string) error {
+func deployFiles(bucketName, regionName string, isForceUploadEnabled bool) error {
 	store, err := store.New()
 	if err != nil {
 		return err
@@ -79,7 +84,7 @@ func deployFiles(bucketName, regionName string) error {
 			if err != nil {
 				return err
 			}
-			if didFileChange {
+			if didFileChange || isForceUploadEnabled {
 				finalS3Url := amazonBucketURL + relativePath
 				if err = uploadFileToS3(finalS3Url, fullPath); err != nil {
 					return err
