@@ -40,13 +40,21 @@ func (c *Cache) Get(filePath string) (hash string, ok bool) {
 
 // Set updates the hash for a given filePath in the cache
 func (c *Cache) Set(filePath, hash string) error {
-	r, _ := regexp.Compile("[A-Z]")
-	if len(hash) != 65 || r.MatchString(hash) {
+	r, err := regexp.Compile("[A-Z]")
+	if err != nil {
+		return err
+	}
+	if len(hash) != 64 || r.MatchString(hash) {
 		return errors.Errorf(`Attempted to set cache entry for filePath: %s with invalid hash: %s.
             Hash must be sha256, base-16 encoded with lowercase letters.`, filePath, hash)
 	}
 	c.filePathToHash[filePath] = hash
 	return nil
+}
+
+// Remove deletes an entry from the cache
+func (c *Cache) Remove(filePath string) {
+	delete(c.filePathToHash, filePath)
 }
 
 // GetFilePaths returns the filePaths saved in the cache

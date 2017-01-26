@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"github.com/go-errors/errors"
 )
@@ -63,15 +65,30 @@ func (s *Store) MarkAsTouched(filePath string) {
 	s.filePathToWasTouched[filePath] = true
 }
 
-// GetFilePathsToDeleteOnRemote returns the filePaths that were stored in the cache but no longer
+// GetRelativeFilePathsToDeleteOnRemote returns the filePaths that were stored in the cache but no longer
 // referenced in the last deploy and have therefore been deleted locally.
-func (s *Store) GetFilePathsToDeleteOnRemote() (filePathsToDelete []string) {
+func (s *Store) GetRelativeFilePathsToDeleteOnRemote() (filePathsToDelete []string, err error) {
+	currentDirectory, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		return []string{}, errors.Wrap(err, 0)
+	}
 	for filePath, wasTouched := range s.filePathToWasTouched {
 		if !wasTouched {
-			filePathsToDelete = append(filePathsToDelete, filePath)
+			relativeFilePath := filePath[len(currentDirectory)+1:]
+			filePathsToDelete = append(filePathsToDelete, relativeFilePath)
 		}
 	}
-	return filePathsToDelete
+	return filePathsToDelete, nil
+}
+
+// RemoveDeletedFilesFromCache deletes all files that were not touched during this call to s3deploy
+// from the cache
+func (s *Store) RemoveDeletedFilesFromCache() {
+	for filePath, wasTouched := range s.filePathToWasTouched {
+		if !wasTouched {
+			s.cache.Remove(filePath)
+		}
+	}
 }
 
 // SaveCacheToFile saves the state of the cache to a file
