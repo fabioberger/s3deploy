@@ -4,7 +4,7 @@
 S3 Deploy
 --------------
 
-Do you have a static web-app you'd like to deploy to S3 with one command? S3Deploy is the tool for you!
+Do you have a static web-app you'd like to deploy to S3 with one command? S3Deploy will sync your local project with an S3 bucket, only uploading the files that have changed, and removing files that you've deleted locally. This is essentially a simpler version of the [AWS CLI sync command](http://docs.aws.amazon.com/cli/latest/reference/s3/sync.html).
 
 # How to install:
 
@@ -38,10 +38,10 @@ replacing YOUR_S3_ACCESS_KEY and YOUR_S3_SECRET_KEY with your keys from [https:/
 cd ~/path/to/my/project
 ```
 ```
-s3deploy -b S3_BUCKET_NAME
+s3deploy --bucket S3_BUCKET_NAME --region s3-eu-west-1
 ```
 <br>
-Where you replace S3_BUCKET_NAME with the bucket you'd like to deploy the project to. Make sure this bucket is already created on S3.
+Where you replace S3_BUCKET_NAME with the bucket you'd like to deploy the project to. Make sure this bucket is already created on S3 and that you specify the buckets region.
 
 For more options, check out:
 
